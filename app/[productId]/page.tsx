@@ -1,42 +1,39 @@
+"use client"
 import AddToCartBtn from "@/components/addTocartBtn";
+import Loading from "@/components/loading";
 import ProductCard from "@/components/productCard";
 import Rating from "@/components/rating";
 import { Separator } from "@/components/ui/separator";
+import { fetcher } from "@/lib/constants";
 import { Product } from "@/lib/types";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import useSWR from "swr";
 
-async function getProduct(id: string): Promise<Product> {
-  const res = await fetch(`https://fakestoreapi.com/products/${id}`, {
-    next: { revalidate: 60 },
-  });
-
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
-}
-
-async function getProductsByCategory(category: string): Promise<Product[]> {
-  const res = await fetch(
-    `https://fakestoreapi.com/products/category/${encodeURIComponent(category)}`,
+export default function ProductPage() {
+  const { productId } = useParams();
+  const { data: product, error } = useSWR<Product>(
+    `https://fakestoreapi.com/products/${productId}`,
+    fetcher,
     {
-      next: { revalidate: 60 },
-    },
+      keepPreviousData: true,
+    }
   );
 
-  if (!res.ok) return [];
-
-  return res.json();
-}
-export default async function ProductPage({
-  params,
-}: {
-  params: { productId: string };
-}) {
-  const { productId } = await params;
-  const product = await getProduct(productId);
-  const relatedProducts = await getProductsByCategory(product.category);
-
-  if (!product) notFound();
+  const { data: relatedProducts, error: error2 } = useSWR<Product[]>(
+    `https://fakestoreapi.com/products/category/${product?.category}`,
+    fetcher,
+    {
+      keepPreviousData: true,
+    }
+  );
+  if (error) return <div>Failed to load</div>;
+  if (!product)
+    return (
+      <div className="w-screen h-screen">
+        <Loading color="red-700" />
+      </div>
+    );
 
   return (
     <div className="mt-4 px-2 space-y-4">
@@ -59,7 +56,16 @@ export default async function ProductPage({
           <p className="text-gray-400 text-sm">{product.title}</p>
           <Rating initialRate={product.rating.rate} />
           <p>${product.price}</p>
-          <AddToCartBtn width="50"  cartItem={{id:product.id,title:product.title,price:product.price,quantity:1, image:product.image}}/>
+          <AddToCartBtn
+            width="50"
+            cartItem={{
+              id: product.id,
+              title: product.title,
+              price: product.price,
+              quantity: 1,
+              image: product.image,
+            }}
+          />
         </div>
       </div>
       <div>
@@ -74,11 +80,19 @@ export default async function ProductPage({
       </div>
       <div className="space-y-2">
         <p className="font-semibold">Related products</p>
-        <div className=" flex flex-wrap gap-4 justify-between [@media(max-width:515px)]:justify-center">
-          {relatedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {error2 ? (
+          <p>error fetching products</p>
+        ) : relatedProducts ? (
+          <div className=" flex flex-wrap gap-4 justify-between [@media(max-width:515px)]:justify-center">
+            {relatedProducts?.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="w-screen h-screen">
+            <Loading color="red-700" />
+          </div>
+        )}
       </div>
     </div>
   );

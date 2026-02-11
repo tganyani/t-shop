@@ -1,6 +1,4 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Combobox,
@@ -14,44 +12,32 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { categories } from "@/lib/constants";
-import { useState } from "react";
 
-export default function SearchBar() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const [productCategory, setProductCategory] = useState<string>("");
-  function onChangeTitle(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (value?.trim()) {
-      params.set("q", value);
-    } else {
-      params.delete("q");
-    }
-
-    startTransition(() => {
-      router.push(`/?${params.toString()}`);
-    });
-  }
-
-  function onChangeCategory(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (value?.trim()) {
-      params.set("q1", value === "all" ? "" : value);
-    } else {
-      params.delete("q1");
-    }
-
-    startTransition(() => {
-      router.push(`/?${params.toString()}`);
-    });
-  }
+export default function SearchBar({
+  searchTerms,
+  setSearchTerms,
+}: {
+  searchTerms: {
+    title: string;
+    category: string;
+  };
+  setSearchTerms: ({
+    title,
+    category,
+  }: {
+    title: string;
+    category: string;
+  }) => void;
+}) {
   return (
     <div className="flex flex-wrap [@media(max-width:515px)]:flex-col-reverse [@media(max-width:515px)]:items-center  justify-center gap-2">
       <Combobox
-        onValueChange={(value) => onChangeCategory(value?.value as string)}
+        onValueChange={(value) =>
+          setSearchTerms({
+            ...searchTerms,
+            category: value?.value === "all" ? "" : (value?.value as string),
+          })
+        }
         items={categories}
         defaultValue={categories[0]}
       >
@@ -79,7 +65,9 @@ export default function SearchBar() {
         </ComboboxContent>
       </Combobox>
       <Input
-        onChange={(e) => onChangeTitle(e.target.value)}
+        onChange={(e) =>
+          setSearchTerms({ ...searchTerms, title: e.target.value })
+        }
         className="w-60 [@media(max-width:515px)]:w-[90vw]"
         placeholder="Enter product title"
       />

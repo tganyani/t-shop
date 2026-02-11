@@ -1,36 +1,46 @@
-
-"use client"
+"use client";
+import Loading from "@/components/loading";
 import ProductCard from "@/components/productCard";
 import SearchBar from "@/components/searchBar";
+import { fetcher } from "@/lib/constants";
 import { Product } from "@/lib/types";
+import { useState } from "react";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default  function Home() {
-  // const params = searchParams ? await searchParams : {};
-  // const query = params.q?.toLowerCase() ?? "";
-  // const query1 = params.q1?.toLowerCase() ?? "";
-const { data:products, error } = useSWR("https://fakestoreapi.com/products", fetcher)
-  // const res = await fetch("https://fakestoreapi.com/products", {
-  //   next: { revalidate: 60 },
-  // });
-  // const products: Product[] = await res.json();
-  // const filtered =
-  //   query || query1
-  //     ? products.filter(
-  //         (p) =>
-  //           p.title.toLowerCase().includes(query) &&
-  //           p.category.toLowerCase().includes(query1),
-  //       )
-  //     : products;
-  if (error) return <div>Failed to load</div>
-  if (!products) return <div>Loading...</div>
+
+export default function Home() {
+  const { data: products, error } = useSWR<Product[]>(
+    "https://fakestoreapi.com/products",
+    fetcher,
+    {
+      keepPreviousData: true,
+    }
+  );
+  const [searchTerms, setSearchTerms] = useState<{
+    title: string;
+    category: string;
+  }>({
+    title: "",
+    category: "",
+  });
+  const filtered = products?.filter(
+    (p) =>
+      p.title.toLowerCase().includes(searchTerms.title) &&
+      p.category.toLowerCase().includes(searchTerms.category),
+  );
+  if (error) return <div>Failed to load</div>;
+  if (!products)
+    return (
+      <div className="w-screen h-screen">
+        <Loading color="red-700" />
+      </div>
+    );
   return (
-    <div className="mt-4 space-y-4 ">
-      <SearchBar />
+    <div className="mt-4 space-y-4">
+      <SearchBar searchTerms={searchTerms} setSearchTerms={setSearchTerms} />
       <div className=" flex flex-wrap gap-4 justify-between [@media(max-width:515px)]:justify-center">
-        {products.map((product:Product) => (
+        {filtered?.map((product: Product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

@@ -77,7 +77,6 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "cart-storage", // key in localStorage
-      skipHydration: true,
     }
   )
 );
